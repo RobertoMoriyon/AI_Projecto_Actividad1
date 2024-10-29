@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seguimiento de Hábitos Diarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-xl mx-auto bg-white shadow-md rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-center mb-4">Seguimiento de Hábitos Diarios</h1>
+        <div class="mb-4">
+            <input id="habit-input" type="text" class="border p-2 w-full" placeholder="Agregar un hábito (ej. Ejercicio)">
+            <button id="add-habit" class="bg-blue-500 text-white px-4 py-2 mt-2 w-full">Agregar Hábito</button>
+        </div>
+        <ul id="habit-list" class="list-none mb-6"></ul>
+        <div>
+            <button id="reset-habits" class="bg-red-500 text-white px-4 py-2 w-full">Resetear Hábitos</button>
+        </div>
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold text-center mb-2">Progreso Diario</h2>
+            <div id="progress" class="text-center"></div>
+        </div>
+        <canvas id="progressChart" class="mt-6"></canvas>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let habits = JSON.parse(localStorage.getItem("habits")) || [];
+            const habitInput = document.getElementById("habit-input");
+            const addHabitButton = document.getElementById("add-habit");
+            const habitList = document.getElementById("habit-list");
+            const resetButton = document.getElementById("reset-habits");
+            const progressDiv = document.getElementById("progress");
+
+            const renderHabits = () => {
+                habitList.innerHTML = "";
+                habits.forEach((habit, index) => {
+                    const habitItem = document.createElement("li");
+                    habitItem.className = "flex justify-between items-center mb-2";
+                    const habitText = document.createElement("span");
+                    habitText.textContent = habit.name;
+                    const completeButton = document.createElement("button");
+                    completeButton.textContent = habit.completed ? "Completado" : "Marcar como completado";
+                    completeButton.className = `px-2 py-1 text-sm ${habit.completed ? "bg-green-500 text-white" : "bg-gray-300 text-black"}`;
+                    completeButton.addEventListener("click", () => {
+                        habit.completed = !habit.completed;
+                        localStorage.setItem("habits", JSON.stringify(habits));
+                        renderHabits();
+                        calculateProgress();
+                    });
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Eliminar";
+                    deleteButton.className = "bg-red-500 text-white px-2 py-1 text-sm";
+                    deleteButton.addEventListener("click", () => {
+                        habits.splice(index, 1);
+                        localStorage.setItem("habits", JSON.stringify(habits));
+                        renderHabits();
+                        calculateProgress();
+                    });
+                    habitItem.appendChild(habitText);
+                    habitItem.appendChild(completeButton);
+                    habitItem.appendChild(deleteButton);
+                    habitList.appendChild(habitItem);
+                });
+            };
+
+            const addHabit = () => {
+                const habitName = habitInput.value.trim();
+                if (habitName) {
+                    habits.push({ name: habitName, completed: false });
+                    habitInput.value = "";
+                    localStorage.setItem("habits", JSON.stringify(habits));
+                    renderHabits();
+                    calculateProgress();
+                }
+            };
+
+            const resetHabits = () => {
+                habits = [];
+                localStorage.removeItem("habits");
+                renderHabits();
+                calculateProgress();
+            };
+
+            const calculateProgress = () => {
+                const totalHabits = habits.length;
+                const completedHabits = habits.filter(habit => habit.completed).length;
+                const percentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+                progressDiv.textContent = `Progreso Diario: ${Math.round(percentage)}%`;
+                updateChart(percentage);
+            };
+
+            addHabitButton.addEventListener("click", addHabit);
+            resetButton.addEventListener("click", resetHabits);
+            renderHabits();
+            calculateProgress();
+
+            // Progress chart using Chart.js
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            let progressChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Progreso'],
+                    datasets: [{
+                        label: 'Progreso Diario (%)',
+                        data: [0],
+                        backgroundColor: ['rgba(54, 162, 235, 0.2)'],
+                        borderColor: ['rgba(54, 162, 235, 1)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            const updateChart = (percentage) => {
+                progressChart.data.datasets[0].data[0] = percentage;
+                progressChart.update();
+            };
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
